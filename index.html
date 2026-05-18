@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RustChain Live Dashboard</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f3;
+      --panel: #ffffff;
+      --panel-soft: #eef3ed;
+      --ink: #18201c;
+      --muted: #5e6a63;
+      --line: #d9dfd8;
+      --green: #2f7b57;
+      --green-soft: #dff0e5;
+      --amber: #a5641b;
+      --amber-soft: #f7ead8;
+      --red: #9e3b35;
+      --blue: #376d86;
+      --shadow: 0 16px 34px rgba(39, 50, 42, 0.08);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    .shell {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 20px 44px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(47, 123, 87, 0.18), rgba(165, 100, 27, 0.14)),
+        #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .mark svg {
+      display: block;
+      width: 30px;
+      height: 30px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.15;
+      font-weight: 750;
+    }
+
+    .subtitle {
+      margin: 7px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+      max-width: 760px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .status-pill,
+    .refresh-button {
+      min-height: 38px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--amber);
+    }
+
+    .status-dot.live {
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(47, 123, 87, 0.14);
+    }
+
+    .status-dot.down {
+      background: var(--red);
+      box-shadow: 0 0 0 5px rgba(158, 59, 53, 0.12);
+    }
+
+    .refresh-button {
+      cursor: pointer;
+      transition: border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .refresh-button:hover,
+    .refresh-button:focus-visible {
+      border-color: var(--green);
+      outline: none;
+      background: #fafffb;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .stats {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-bottom: 14px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .metric {
+      padding: 17px;
+      min-height: 124px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 680;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      margin-top: 10px;
+      font-size: 30px;
+      line-height: 1.12;
+      font-weight: 760;
+      overflow-wrap: anywhere;
+    }
+
+    .metric-note {
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .main-grid {
+      grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.95fr);
+      align-items: start;
+    }
+
+    .section {
+      padding: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      font-weight: 740;
+    }
+
+    .section-meta {
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 0;
+      border-collapse: collapse;
+      font-size: 14px;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+      overflow-wrap: anywhere;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      background: #fafbf8;
+    }
+
+    th:nth-child(1) {
+      width: 42%;
+    }
+
+    th:nth-child(2) {
+      width: 19%;
+    }
+
+    th:nth-child(3) {
+      width: 16%;
+    }
+
+    th:nth-child(4) {
+      width: 12%;
+    }
+
+    th:nth-child(5) {
+      width: 11%;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .mono {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      min-height: 26px;
+      padding: 3px 8px;
+      border-radius: 8px;
+      background: var(--panel-soft);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 680;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .tag.amber {
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+
+    .chart-box {
+      height: 250px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfa;
+      padding: 12px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .split-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .row:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .row-name {
+      min-width: 0;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .row-value {
+      font-weight: 720;
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+
+    .feed {
+      display: grid;
+      gap: 10px;
+    }
+
+    .notice {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfa;
+      padding: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .footer {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 980px) {
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .shell {
+        padding: 18px 12px 30px;
+      }
+
+      .topbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .brand {
+        align-items: flex-start;
+      }
+
+      .mark {
+        width: 42px;
+        height: 42px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      .actions {
+        justify-content: stretch;
+      }
+
+      .status-pill,
+      .refresh-button {
+        justify-content: center;
+        flex: 1 1 150px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .metric {
+        min-height: 108px;
+      }
+
+      .metric-value {
+        font-size: 26px;
+      }
+
+      .section {
+        padding: 14px;
+      }
+
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .section-meta {
+        text-align: left;
+      }
+
+      .chart-box {
+        height: 220px;
+      }
+
+      .table-wrap {
+        overflow: visible;
+        border: 0;
+      }
+
+      table,
+      tbody,
+      tr,
+      td {
+        display: block;
+        width: 100%;
+      }
+
+      table {
+        min-width: 0;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfa;
+      }
+
+      tr:last-child {
+        margin-bottom: 0;
+      }
+
+      td {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 10px;
+        padding: 6px 0;
+        border-bottom: 0;
+      }
+
+      td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+      }
+
+      .row-value {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" role="img">
+            <rect x="12" y="12" width="40" height="40" rx="6" fill="#2f7b57"></rect>
+            <path d="M20 34h24M32 20v24M22 24l20 20M42 24 22 44" stroke="#f7ead8" stroke-width="4" stroke-linecap="round"></path>
+            <circle cx="32" cy="32" r="5" fill="#ffffff"></circle>
+          </svg>
+        </div>
+        <div>
+          <h1>RustChain Live Dashboard</h1>
+          <p class="subtitle">Live network snapshot from public RustChain endpoints, with miner distribution and endpoint status checks.</p>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="status-pill"><span id="statusDot" class="status-dot"></span><span id="statusText">Loading</span></div>
+        <button id="refreshButton" class="refresh-button" type="button">Refresh</button>
+      </div>
+    </header>
+
+    <section class="grid stats" aria-label="Network metrics">
+      <article class="card metric">
+        <div class="metric-label">Epoch</div>
+        <div id="epochValue" class="metric-value">-</div>
+        <div id="slotValue" class="metric-note">Slot -</div>
+      </article>
+      <article class="card metric">
+        <div class="metric-label">Enrolled Miners</div>
+        <div id="minersValue" class="metric-value">-</div>
+        <div id="apiMinersValue" class="metric-note">API miners -</div>
+      </article>
+      <article class="card metric">
+        <div class="metric-label">Total Supply</div>
+        <div id="supplyValue" class="metric-value">-</div>
+        <div id="potValue" class="metric-note">Epoch pot -</div>
+      </article>
+      <article class="card metric">
+        <div class="metric-label">Node Health</div>
+        <div id="healthValue" class="metric-value">-</div>
+        <div id="versionValue" class="metric-note">Version -</div>
+      </article>
+    </section>
+
+    <section class="grid main-grid">
+      <article class="card section">
+        <div class="section-head">
+          <h2>Active Miner Balances</h2>
+          <div id="balanceMeta" class="section-meta">Fetching balances</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Miner</th>
+                <th>Balance</th>
+                <th>Family</th>
+                <th>Multiplier</th>
+                <th>Last Seen</th>
+              </tr>
+            </thead>
+            <tbody id="minerRows">
+              <tr><td colspan="5">Loading miners...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <aside class="side-stack">
+        <article class="card section">
+          <div class="section-head">
+            <h2>Balance Distribution</h2>
+            <div id="chartMeta" class="section-meta">Visible active miners</div>
+          </div>
+          <div class="chart-box">
+            <canvas id="balanceChart" width="680" height="420" aria-label="Balance bar chart"></canvas>
+          </div>
+        </article>
+
+        <article class="card section">
+          <div class="section-head">
+            <h2>Network Checks</h2>
+            <div id="checkedAt" class="section-meta">-</div>
+          </div>
+          <div class="split-list">
+            <div class="row">
+              <div class="row-name">Public stats endpoint</div>
+              <div id="statsProbe" class="row-value">Checking</div>
+            </div>
+            <div class="row">
+              <div class="row-name">Public transactions endpoint</div>
+              <div id="txProbe" class="row-value">Checking</div>
+            </div>
+            <div class="row">
+              <div class="row-name">Health latency</div>
+              <div id="latencyValue" class="row-value">-</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card section">
+          <div class="section-head">
+            <h2>Transaction Surface</h2>
+          </div>
+          <div id="transactionFeed" class="feed">
+            <div class="notice">Checking public transaction feeds...</div>
+          </div>
+        </article>
+      </aside>
+    </section>
+
+    <p class="footer">Source endpoints: rustchain.org /health, /epoch, /api/miners, /wallet/balance. The dashboard refreshes every 30 seconds and degrades visibly when an endpoint is not public.</p>
+  </main>
+
+  <script>
+    const API = "https://rustchain.org";
+    const el = (id) => document.getElementById(id);
+    const fmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 });
+    const shortFmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+    let refreshTimer = null;
+
+    function setText(id, value) {
+      el(id).textContent = value;
+    }
+
+    function status(kind, text) {
+      const dot = el("statusDot");
+      dot.className = "status-dot";
+      if (kind) dot.classList.add(kind);
+      setText("statusText", text);
+    }
+
+    function lastSeen(seconds) {
+      if (!seconds) return "-";
+      const delta = Math.max(0, Date.now() / 1000 - Number(seconds));
+      if (delta < 60) return `${Math.round(delta)}s ago`;
+      if (delta < 3600) return `${Math.round(delta / 60)}m ago`;
+      if (delta < 86400) return `${Math.round(delta / 3600)}h ago`;
+      return `${Math.round(delta / 86400)}d ago`;
+    }
+
+    async function fetchJson(path, options = {}) {
+      const started = performance.now();
+      const response = await fetch(`${API}${path}`, { cache: "no-store", ...options });
+      const latency = performance.now() - started;
+      if (!response.ok) {
+        const error = new Error(`HTTP ${response.status}`);
+        error.status = response.status;
+        error.latency = latency;
+        throw error;
+      }
+      return { data: await response.json(), latency };
+    }
+
+    async function probe(path) {
+      try {
+        await fetchJson(path);
+        return { ok: true, text: "Public" };
+      } catch (error) {
+        return { ok: false, text: error.status ? `HTTP ${error.status}` : "Unavailable" };
+      }
+    }
+
+    async function balanceFor(miner) {
+      try {
+        const { data } = await fetchJson(`/wallet/balance?miner_id=${encodeURIComponent(miner)}`);
+        return Number(data.amount_rtc || 0);
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function renderRows(miners) {
+      if (!miners.length) {
+        el("minerRows").innerHTML = '<tr><td colspan="5">No active miners returned.</td></tr>';
+        return;
+      }
+      const rows = miners
+        .slice()
+        .sort((a, b) => (b.balance || 0) - (a.balance || 0))
+        .map((miner) => {
+          const balance = miner.balance === null ? "unavailable" : `${fmt.format(miner.balance)} RTC`;
+          const family = miner.device_family || "Unknown";
+          const tagClass = /Power|Vintage/i.test(`${miner.hardware_type} ${family}`) ? "tag amber" : "tag";
+          return `
+            <tr>
+              <td class="mono" data-label="Miner">${escapeHtml(miner.miner || "-")}</td>
+              <td data-label="Balance">${escapeHtml(balance)}</td>
+              <td data-label="Family"><span class="${tagClass}">${escapeHtml(family)}</span></td>
+              <td data-label="Multiplier">${shortFmt.format(Number(miner.antiquity_multiplier || 0))}x</td>
+              <td data-label="Last seen">${escapeHtml(lastSeen(miner.last_attest))}</td>
+            </tr>
+          `;
+        })
+        .join("");
+      el("minerRows").innerHTML = rows;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function renderChart(miners) {
+      const canvas = el("balanceChart");
+      const rect = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.max(280, Math.round(rect.width * ratio));
+      canvas.height = Math.max(180, Math.round(rect.height * ratio));
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      const width = canvas.width / ratio;
+      const height = canvas.height / ratio;
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#fbfcfa";
+      ctx.fillRect(0, 0, width, height);
+
+      const rows = miners
+        .filter((miner) => Number.isFinite(miner.balance) && miner.balance > 0)
+        .sort((a, b) => b.balance - a.balance)
+        .slice(0, 8);
+
+      if (!rows.length) {
+        ctx.fillStyle = "#5e6a63";
+        ctx.font = "16px system-ui, sans-serif";
+        ctx.fillText("No public balances returned", 24, 56);
+        return;
+      }
+
+      const max = Math.max(...rows.map((item) => item.balance));
+      const left = Math.min(140, Math.max(104, width * 0.34));
+      const right = 18;
+      const top = 24;
+      const barH = width < 420 ? 16 : 24;
+      const gap = width < 420 ? 15 : 17;
+      const barMax = width - left - right;
+
+      ctx.font = `${width < 420 ? 11 : 13}px system-ui, sans-serif`;
+      ctx.textBaseline = "middle";
+      rows.forEach((item, index) => {
+        const y = top + index * (barH + gap);
+        const labelLimit = width < 420 ? 12 : 18;
+        const label = item.miner.length > labelLimit ? `${item.miner.slice(0, labelLimit - 3)}...` : item.miner;
+        const barWidth = Math.max(3, (item.balance / max) * barMax);
+        ctx.fillStyle = "#5e6a63";
+        ctx.fillText(label, 12, y + barH / 2);
+        ctx.fillStyle = index === 0 ? "#a5641b" : "#2f7b57";
+        ctx.fillRect(left, y, barWidth, barH);
+        ctx.fillStyle = "#18201c";
+        const value = shortFmt.format(item.balance);
+        const valueX = left + Math.min(barWidth + 6, Math.max(0, barMax - 48));
+        ctx.fillText(value, valueX, y + barH / 2);
+      });
+    }
+
+    function updateTransactionSurface(txStatus) {
+      const feed = el("transactionFeed");
+      if (txStatus.ok) {
+        feed.innerHTML = '<div class="notice">The public transaction endpoint is reachable. Recent transaction rendering will be available when rows are exposed by the API.</div>';
+      } else {
+        feed.innerHTML = `
+          <div class="notice">
+            Public transaction rows are not exposed at <span class="mono">/api/transactions</span> right now (${escapeHtml(txStatus.text)}).
+            Epoch, miner, supply, health, and wallet-balance data remain live.
+          </div>
+        `;
+      }
+    }
+
+    async function load() {
+      status(null, "Loading");
+      el("refreshButton").disabled = true;
+      try {
+        const healthRequest = fetchJson("/health");
+        const [epochResult, minersResult, healthResult, statsProbe, txProbe] = await Promise.all([
+          fetchJson("/epoch"),
+          fetchJson("/api/miners?limit=1000"),
+          healthRequest,
+          probe("/api/stats"),
+          probe("/api/transactions?limit=5")
+        ]);
+
+        const epoch = epochResult.data;
+        const miners = minersResult.data.miners || [];
+        const balances = await Promise.all(miners.map((miner) => balanceFor(miner.miner)));
+        const enriched = miners.map((miner, index) => ({ ...miner, balance: balances[index] }));
+        const visibleBalance = enriched.reduce((sum, miner) => sum + (Number.isFinite(miner.balance) ? miner.balance : 0), 0);
+
+        setText("epochValue", fmt.format(epoch.epoch || 0));
+        setText("slotValue", `Slot ${fmt.format(epoch.slot || 0)} of ${fmt.format(epoch.blocks_per_epoch || 0)} blocks`);
+        setText("minersValue", fmt.format(epoch.enrolled_miners || 0));
+        setText("apiMinersValue", `API miners ${fmt.format(enriched.length)}`);
+        setText("supplyValue", `${fmt.format(epoch.total_supply_rtc || 0)} RTC`);
+        setText("potValue", `Epoch pot ${fmt.format(epoch.epoch_pot || 0)} RTC`);
+        setText("healthValue", healthResult.data.ok ? "OK" : "Degraded");
+        setText("versionValue", `Version ${healthResult.data.version || "-"}`);
+        setText("latencyValue", `${Math.round(healthResult.latency)} ms`);
+        setText("statsProbe", statsProbe.text);
+        setText("txProbe", txProbe.text);
+        setText("balanceMeta", `${fmt.format(visibleBalance)} RTC visible across ${fmt.format(enriched.length)} miners`);
+        setText("checkedAt", new Date().toLocaleTimeString());
+
+        renderRows(enriched);
+        renderChart(enriched);
+        updateTransactionSurface(txProbe);
+        status(healthResult.data.ok ? "live" : "down", healthResult.data.ok ? "Live" : "Degraded");
+      } catch (error) {
+        status("down", "Error");
+        el("transactionFeed").innerHTML = `<div class="notice">Refresh failed: ${escapeHtml(error.message || error)}</div>`;
+      } finally {
+        el("refreshButton").disabled = false;
+      }
+    }
+
+    el("refreshButton").addEventListener("click", load);
+    load();
+    refreshTimer = setInterval(load, 30000);
+    window.addEventListener("pagehide", () => {
+      if (refreshTimer) clearInterval(refreshTimer);
+    });
+  </script>
+</body>
+</html>
