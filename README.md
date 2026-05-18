@@ -11,9 +11,20 @@ Single-file live dashboard for RustChain bounty #1600.
 - Public endpoint checks for `/api/stats` and `/api/transactions`
 - Mobile responsive layout
 
+## Network status page
+
+`status.html` is a dedicated RustChain network status page for bounty #38:
+
+- Browser checks for public attestation-node `/health` endpoints
+- Current epoch and settlement progress from `/epoch`
+- Active miner count and hardware-family chart from `/api/miners`
+- Incident log, status feed line, and README badge snippet
+- 60-second auto-refresh and mobile responsive layout
+
 ## Bounty
 
 - Bounty: https://github.com/Scottcjn/rustchain-bounties/issues/1600
+- Status page bounty: https://github.com/Scottcjn/rustchain-bounties/issues/38
 - RTC wallet: `RTC02811ff5e2bb4bb4b95eee44c5429cd9525496e7`
 
 ## Local preview
